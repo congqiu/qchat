@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>轻聊--简单聊聊</title>
+    <link href="//cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="<%= staticUrl + '/plugins/mCustomScrollbar/jquery.mCustomScrollbar.min.css' %>" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="page-content" id="<%= page; %>">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-3 users-list">
+            <ul data-role="group">
+              <li data-user="all" class="clearfix " id="user-all">
+                <span class="avatar col-md-3"><img src="/avatar/default.jpg"></span>
+                <div class="infos col-md-9">
+                  <div class="username">全部人员</div>
+                  <div class="latest"></div>
+                  <div class="counts">0</div>
+                </div>
+              </li>
+            </ul>
+            <ul class="private" data-role="private"></ul>
+          </div>
+          <div class="col-md-9 chat-board">
+            <div class="chat-header clearfix">
+              <span id="status"></span>
+            </div>
+            <div class="msgs-board">
+              <ul id="chat-all">
+                
+              </ul>
+            </div>
+            <div class="send-board" data-to="all">
+              <div class="items operations">
+                <input class="btn" name="emoji" type="button" value="表情">
+                <label for="sendImage" class="image-lable">
+                    <input class="btn" type="button" value="图片">
+                    <input id="sendImage" name="image" type="file" value="图片" accept="image/*">
+                </label>
+                <input class="btn" name="clear" type="button" value="清屏">
+              </div>
+              <textarea class="message" placeHolder="输入消息"></textarea>
+              <div class="message" contenteditable="true"></div>
+              <input class="btn btn-info btn-send" type="button" value="发送">
+              <div class="emoji-board">
+                <div class="emoji-body">
+                  <div class="item item-0"></div>
+                  <div class="item item-1"></div>
+                </div>
+                <div class="emoji-tabs">
+                  <span class="active" data-type="0">经典表情</span>
+                  <span data-type="1">流氓兔</span>
+                </div>
+              </div>
+              <div class="toast-board">
+                
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="before-login">
+        <div class="container">
+          <label class="info">连接服务器</label>
+          <div class="row user-action">
+            <div class="reg-form col-md-6">
+              <h2 class="form-signin-heading">注册</h2>
+              <input class="form-control" type="text" name="username" placeholder="用户名">
+              <input class="form-control" type="password" name="password" placeholder="密码">
+              <button class="btn btn-lg btn-primary btn-block" type="submit">提交</button>
+            </div>
+            <div class="login-form col-md-6">
+              <h2 class="form-signin-heading">登录</h2>
+              <input class="form-control" type="text" name="username" placeholder="用户名">
+              <input class="form-control" type="password" name="password" placeholder="密码">
+              <button class="btn btn-lg btn-primary btn-block" type="submit">提交</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script src="//cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
+    <script src="//cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="<%= staticUrl + '/plugins/mCustomScrollbar/jquery.mCustomScrollbar.concat.min.js' %>"></script>
+    <script src="<%= staticUrl + '/js/base/myTools.js' %>"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/chat.js"></script>
+    <script>
+      $('.msgs-board').mCustomScrollbar({
+        theme: "minimal-dark",
+        'scrollTo': 'bottom',
+        scrollInertia: 300,
+      });
+      var static = '<%= staticUrl %>' || '';
+      $.qChat({io: io, static: static});
+    </script>
+  </body>
+</html>
+  

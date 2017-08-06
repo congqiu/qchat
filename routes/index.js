@@ -36,9 +36,23 @@ router.post('/login', function (req, res, next) {
  			var md5pwd = md5.update(new Buffer(username + password + user.create)).digest('hex');
  			
  			if (md5pwd === user.password) {
- 				delete user.password;
- 				req.session.user = user;
- 				res.json({status: 1, message: '登录成功', user: user});
+				client.sismember('qchatuser:list', user.uid, function (err1, sresult) {
+					if (!err1 && sresult) {
+						client.del('sess:' + user.session, function (err3, sessionRes) {
+		          console.log(username + '重复登录');
+		        });
+					}
+					user.session = req.sessionID;
+				 	client.set('users:' + username, JSON.stringify(user), function(err2, addRes){
+				 		if (err2) {
+	 						res.json({status: 0, message: '系统错误'});
+				 		} else {
+			 				delete user.password;
+			 				req.session.user = user;
+			 				res.json({status: 1, message: '登录成功', user: user});
+				 		}
+				  });
+				});
  			} else {
  				res.json({status: 0, message: '用户名或密码错误1'});
  			}
@@ -66,7 +80,7 @@ router.post('/register', function (req, res, next) {
 		if (!err) {
 			if (!result) {
 				var md5pwd = md5.update(new Buffer(username + password + date)).digest('hex');
-				var user = {uid: uid, username: username, password: md5pwd, create: date};
+				var user = {uid: uid, username: username, password: md5pwd, create: date, session: req.sessionID};
 			 	client.set('users:' + username, JSON.stringify(user), function(err, addRes){
 			 		if (err) {
  						res.json({status: 0, message: '注册失败'});

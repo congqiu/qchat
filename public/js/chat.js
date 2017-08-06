@@ -90,6 +90,11 @@
 	    		e.preventDefault();
 	    	}
 	    });
+	    $('.send-board').on('paste', '.message', function(event) {
+	    	console.log(event)
+	    });
+	    // document.getElementsByTagName("textarea")[0].addEventListener('paste', function(e) {
+	    // });
 	  	$('#sendImage').change(function(event) {
 	  		var message_dom = $('.send-board div.message');
 	  		var result = previewImage(event.target);

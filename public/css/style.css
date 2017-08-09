@@ -229,7 +229,7 @@
   display: inline-block;
 }
 #chat-page .container .send-board .message .pre-img,
-#chat-page .container .send-board .message .message img {
+#chat-page .container .send-board .message img {
   max-width: 80px;
 }
 #chat-page .container .send-board textarea.message {

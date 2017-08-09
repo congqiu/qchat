@@ -86,15 +86,52 @@
 	        return false;
 	      }
 	    }).keypress(function(e) {
-	    	if (event.keyCode == 13 && !event.ctrlKey) {
+	    	if (e.keyCode == 13 && !e.ctrlKey) {
 	    		e.preventDefault();
 	    	}
+	    }).focus(function(event) {
+	    	self.tools.placeCaretAtEnd($(this).get(0));
+	    });
+	    $('.send-board').on('drop', '.message', function(event) {
+	    	event.preventDefault();
+	    	var file = event.dataTransfer || event.originalEvent.dataTransfer;
+        var message_dom = $('.send-board div.message');
+	  		var result = previewImage(file);
+	  		if (!result.result) {
+	  			showToast(result.message);
+	  		}
+	      message_dom.focus();
+	      self.tools.placeCaretAtEnd(message_dom.get(0));
 	    });
 	    $('.send-board').on('paste', '.message', function(event) {
-	    	console.log(event)
+	      var message_dom = $('.send-board div.message');
+	    	var clipboardData = event.clipboardData || event.originalEvent.clipboardData;
+	    	if (clipboardData && clipboardData.items) {
+	    		var items = clipboardData.items;
+	        for (index in items) {
+	          var item = items[index];
+	          if (item.kind === 'file') {
+	            if((item.type).indexOf('image') === -1) {
+	            	showToast("请选择图片发送！");
+						    return; 
+						  } 
+		    			event.preventDefault();
+	          	var id = 'preview' + ($('.pre-img').length + 1);
+						  $('.send-board div.message').append('<a class="to-pre-img" target="_blank"><img class="pre-img" id=' + id + ' src="" alt=""></a>');
+						  var img = document.getElementById(id);
+	            var blob = item.getAsFile();
+	            var reader = new FileReader();
+	            reader.readAsDataURL(blob);
+	            reader.onload = function(evt) {
+	             	img.src = evt.target.result;
+	             	$('#' + id).parent('.to-pre-img').attr('href', img.src);
+	            };
+	          }
+	        }
+	    	}
+        message_dom.focus();
+	      self.tools.placeCaretAtEnd(message_dom.get(0));
 	    });
-	    // document.getElementsByTagName("textarea")[0].addEventListener('paste', function(e) {
-	    // });
 	  	$('#sendImage').change(function(event) {
 	  		var message_dom = $('.send-board div.message');
 	  		var result = previewImage(event.target);
@@ -113,7 +150,7 @@
 	      $('.emoji-board').show();
 	      event.stopPropagation();
 	    });
-	    $('.emoji-tabs span').click(function() {
+	    $('.emoji-tabs span').click(function(event) {
 	      $('.emoji-tabs span').removeClass('active');
 	      var type = $(this).addClass('active').data('type');
 	      $('.emoji-body .item').hide();
@@ -133,6 +170,20 @@
 	    $(document).click(function(event) {
 	      $('.emoji-board').hide();
 	    });
+	    $(document).on({ 
+        dragleave: function(e) {
+          e.preventDefault();
+        },
+        drop: function(e) {
+          e.preventDefault();
+        },
+        dragenter: function(e) {
+          e.preventDefault();
+        },
+        dragover: function(e) {
+          e.preventDefault();
+        }
+    	});
 	    
 	    $('.users-list ul').on('click', 'li', function (e) {
 	    	var user = $(this).data('user');
@@ -178,14 +229,14 @@
 	        var username = info[user].username;
 	        var avatar = (info[user].avatar) ? '/avatar/' + info[user].avatar : "/avatar/default.jpg";
 	        if(user != self.currentUser.uid) {
-	          var image ='<li class="clearfix" data-user="' + user + '" id="user-' + user + '"><span class="avatar col-md-3"><image src="' +avatar+ '"></span>' + 
+	          var online ='<li class="clearfix" data-user="' + user + '" id="user-' + user + '"><span class="avatar col-md-3"><image src="' +avatar+ '"></span>' + 
 	          	'<div class="infos col-md-9">' +
 	          		'<div class="username">' + username + '</div>' +
 	          		'<div class="latest"></div>' +
 	          		'<div class="counts">0</div>' +
 	          	'</div>' +
 	          '</li>';
-	          $(".users-list ul.private").append(image);
+	          $(".users-list ul.private").append(online);
 	          user_account++;
 	        }
 	      }
@@ -327,7 +378,6 @@
 
 
 function previewImage(file) {
-  window.URL = window.URL || window.webkitURL;
   var id = 'preview' + ($('.pre-img').length + 1);
   $('.send-board div.message').append('<a class="to-pre-img" target="_blank"><img class="pre-img" id=' + id + ' src="" alt=""></a>');
   var img = document.getElementById(id);

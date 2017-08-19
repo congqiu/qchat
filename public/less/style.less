@@ -86,12 +86,6 @@
         height: 39px;
         line-height: 39px;
         border-bottom: 1px solid #eee;
-        .add-friend {
-          float: right;
-          margin-right: 20px;
-          cursor: pointer;
-          padding: 0 10px;
-        }
       }
     }
     .msgs-board {
@@ -141,6 +135,9 @@
               word-break: break-all;
               background-color: #fafafa;
               border-radius: 4px;
+              border: transparent;
+              outline: none;
+              appearance: none;
             }
             .text:before {
               content: " ";
@@ -149,6 +146,22 @@
               right: 100%;
               border: 6px solid transparent;
               border-right-color: #fafafa;
+            }
+            button.text {
+              width: 120px;
+            }
+            .new:after {
+              content: '';
+              position: absolute;
+              width: 0;
+              height: 0;
+              right: 0;
+              top: 12px;
+              border: 3px solid red;
+              border-radius: 50%;
+            }
+            button.text:active {
+              transform: translateY(1px);
             }
           }
           .self {

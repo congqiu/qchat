@@ -5,6 +5,8 @@
 	  this.currentUser = options.currentUser || null;
 	  this.tools = baseTools;
 	  this.static = options.static;
+	  this.gRecorder = null;
+	  this.startAudio = 0;
 	  var self = this;
 
 		self.init = function() {
@@ -167,6 +169,49 @@
 	    	var to = $('.send-board').attr('data-to');
 	      $('#chat-' + to).empty();
 	    });
+	    $('.send-board input[name=audio]').mousedown(function(event) {
+	    	var to = $('.send-board').attr('data-to');
+	    	var audio = getUserMedia({audio: true, video: false});
+	    	self.startAudio = + new Date();
+	    	self.gRecorder = null;
+	    	audio.then(function(stream) {
+	    		self.gRecorder = new SRecorder(stream);
+	        self.gRecorder.start();
+				  $(this).unbind('mouseup').mouseup(function(event) {
+			    	if (+ new Date() - self.startAudio > 600) {
+			    		var to = $('.send-board').attr('data-to');
+			    		var _blob = self.gRecorder.getBlob();
+				    	self.socket.emit('audioMsg', _blob, to);
+		      		self._showNewMsg('user', window.URL.createObjectURL(_blob), {owner: true, from: to, isAudio: true});
+			    	}
+		        $(this).unbind('mouseup');
+		        self.stopAudio();
+			    });
+				})
+				.catch(function(err) {
+    			showToast('您的设备不支持语音');
+				});
+	    }).mouseup(function(event) {
+		    if (+ new Date() - self.startAudio <= 600) {
+		    	showToast('录音时间太短');
+    			self.stopAudio();
+		    }
+	    });;
+	    $('.msgs-board').on('click', 'ul li button', function(event) {
+	    	var icon = $(this).find('span');
+	    	var audio = $(this).find('audio');
+	    	if (icon.hasClass('glyphicon-play')) {
+	    		$(this).removeClass('new');
+	    		audio.get(0).play();
+	    		icon.removeClass('glyphicon-play').addClass('glyphicon-stop');
+	    		audio.bind('ended',function () {
+	    			icon.removeClass('glyphicon-stop').addClass('glyphicon-play');
+					});
+	    	} else {
+	    		audio.get(0).pause();
+	    		icon.removeClass('glyphicon-stop').addClass('glyphicon-play');
+	    	}
+	    });
 	    $(document).click(function(event) {
 	      $('.emoji-board').hide();
 	    });
@@ -222,6 +267,12 @@
 	  	self.socket.on('newPrivateMsg', function (user, msg, from) {
 	  		self._showNewMsg(user, msg, {from: from});
 	  	});
+	  	self.socket.on('newAudioMsg', function (user, msg, from) {
+	  		var audio = document.querySelector('audio');
+	  		var _blob = new Blob([msg], { type: 'audio/wav' });
+	  		var src = window.URL.createObjectURL(_blob);
+	  		self._showNewMsg(user, src, {from: from, isAudio: true})
+	  	});
 	    self.socket.on('showOnline', function(info) {
 	      $(".users-list ul.private").empty();
 	      var user_account = 0;
@@ -264,8 +315,8 @@
 	  	var options = _options || {};
 	  	var date = new Date().toTimeString().substr(0, 8);
 	  	var timeStamp = Date.parse(new Date()) / 1000;
-	  	var send_to = $('.send-board').attr('data-to');
-	  	var from = options.from || send_to || 'all';
+	  	var from = options.from || 'all';
+	  	var isAudio = options.isAudio || false;
 	  	var msgboard_dom = $('.msgs-board');
 
 	  	var msgBoard = msgboard_dom.find('#chat-' + from);
@@ -292,27 +343,48 @@
  			if (latest_msg.length == 0 || (timeStamp - latest_msg.attr('data-time') > 60)) {
  				msgBody = '<p class="time" data-time="' + timeStamp + '"><span>' + date + '</span></p>';
  			}
- 			msg = self.dealMsg(msg);
 
-	    if (from === 'all' && !owner) {
-  			msgBody += '<div class="message-body">' +
-		  								'<img class="avatar" src="' + avatar + '">' +
-		  								'<div class="username">' + user + '</div>' +
-		  								'<div class="text">' + msg + '</div>' +
-		  							'</div>';
-	    } else {
-  			msgBody += '<div class="message-body ' + owner_class + '">' +
-  										'<img class="avatar" src="' + avatar + '">' +
-  										'<div class="text">' + msg + '</div>' +
-  									'</div>';
-	    }
+ 			if (isAudio) {
+ 				if (from === 'all' && !owner) {
+	  			msgBody += '<div class="message-body">' +
+			  								'<img class="avatar" src="' + avatar + '">' +
+			  								'<div class="username">' + user + '</div>' +
+			  								'<button class="text new"><span class="glyphicon glyphicon-play"></span>' +
+	  											'<audio src="' + msg + '">' +
+	  										'</button>' +
+			  							'</div>';
+		    } else {
+	  			msgBody += '<div class="message-body ' + owner_class + '">' +
+	  										'<img class="avatar" src="' + avatar + '">' +
+	  										'<button class="text new"><span class="glyphicon glyphicon-play"></span>' +
+	  											'<audio src="' + msg + '">' +
+	  										'</button>' +
+	  									'</div>';
+		    }
+ 			} else {
+ 				msg = self.dealMsg(msg);
+ 				if (uclass === 'system') {
+		    	msgBody = '<p class="time"><span>' + date + '</span></p>' +
+		    							'<div class="message-body system">' +
+		    								'<div class="text">' + msg + '</div>' +
+		    							'</div>';
+		    } else {
+			    if (from === 'all' && !owner) {
+		  			msgBody += '<div class="message-body">' +
+				  								'<img class="avatar" src="' + avatar + '">' +
+				  								'<div class="username">' + user + '</div>' +
+				  								'<div class="text">' + msg + '</div>' +
+				  							'</div>';
+			    } else {
+		  			msgBody += '<div class="message-body ' + owner_class + '">' +
+		  										'<img class="avatar" src="' + avatar + '">' +
+		  										'<div class="text">' + msg + '</div>' +
+		  									'</div>';
+			    }
+		    }
+ 			}
 
-	    if (uclass === 'system') {
-	    	msgBody = '<p class="time"><span>' + date + '</span></p>' +
-	    							'<div class="message-body system">' +
-	    								'<div class="text">' + msg + '</div>' +
-	    							'</div>';
-	    }
+	    
 	  	msgHtml.innerHTML = msgBody;
   		$('#chat-' + from).append(self._showEmoji(msgHtml));
   		msgboard_dom.mCustomScrollbar("scrollTo", 'bottom');
@@ -367,6 +439,16 @@
 	    }
 	    return msg;
 		};
+    self.stopAudio = function () {
+			setTimeout(function () {
+    	 	if (self.gRecorder) {
+		    	self.gRecorder.clear();
+	        self.gRecorder.stop();
+        } else {
+        	self.stopAudio()
+    		};
+			}, 50);
+    }
 
 	  self.init();
 	};
@@ -409,3 +491,164 @@ function showToast(content, dom, time) {
 		clearTimeout(t);
 	}, _time);
 }
+
+function getUserMedia(constraints) {
+	var promisifiedOldGUM = function () {
+	  var getUserMedia = (navigator.getUserMedia ||
+	      navigator.webkitGetUserMedia ||
+	      navigator.mozGetUserMedia);
+	  if(!getUserMedia) {
+	    return false;
+	  }
+	  return getUserMedia;
+	}
+
+	if(navigator.mediaDevices === undefined) {
+	  navigator.mediaDevices = {};
+	}
+
+	if(navigator.mediaDevices.getUserMedia === undefined) {
+	  navigator.mediaDevices.getUserMedia = promisifiedOldGUM;
+	}
+	return navigator.mediaDevices.getUserMedia(constraints);
+}
+
+//参考http://web.jobbole.com/84706/
+//处理获取到的音频数据
+function SRecorder(stream) {
+  config = {};
+
+  config.sampleBits = config.smapleBits || 8;
+  config.sampleRate = config.sampleRate || (44100 / 6);
+
+  AudioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext || window.msAudioContext;
+  if (!AudioContext) {
+  	return false;
+  }
+  var context = new AudioContext();
+  var audioInput = context.createMediaStreamSource(stream);
+  var recorder = context.createScriptProcessor(4096, 1, 1);
+ 
+  var audioData = {
+    size: 0,
+    buffer: [],
+    inputSampleRate: context.sampleRate,
+    inputSampleBits: 16,
+    outputSampleRate: config.sampleRate,
+    oututSampleBits: config.sampleBits,
+    clear: function() {
+      this.buffer = [];
+      this.size = 0;
+    },
+    input: function (data) {
+      this.buffer.push(new Float32Array(data));
+      this.size += data.length;
+    },
+    compress: function () {
+      //合并
+      var data = new Float32Array(this.size);
+      var offset = 0;
+      for (var i = 0; i < this.buffer.length; i++) {
+        data.set(this.buffer[i], offset);
+        offset += this.buffer[i].length;
+      }
+      //压缩
+      var compression = parseInt(this.inputSampleRate / this.outputSampleRate);
+      var length = data.length / compression;
+      var result = new Float32Array(length);
+      var index = 0, j = 0;
+      while (index < length) {
+        result[index] = data[j];
+        j += compression;
+        index++;
+      }
+      return result;
+    },
+    encodeWAV: function () {
+      var sampleRate = Math.min(this.inputSampleRate, this.outputSampleRate);
+      var sampleBits = Math.min(this.inputSampleBits, this.oututSampleBits);
+      var bytes = this.compress();
+      var dataLength = bytes.length * (sampleBits / 8);
+      var buffer = new ArrayBuffer(44 + dataLength);
+      var data = new DataView(buffer);
+
+      var channelCount = 1;//单声道
+      var offset = 0;
+
+      var writeString = function (str) {
+        for (var i = 0; i < str.length; i++) {
+          data.setUint8(offset + i, str.charCodeAt(i));
+        }
+      };
+
+      // 资源交换文件标识符 
+      writeString('RIFF'); offset += 4;
+      // 下个地址开始到文件尾总字节数,即文件大小-8 
+      data.setUint32(offset, 36 + dataLength, true); offset += 4;
+      // WAV文件标志
+      writeString('WAVE'); offset += 4;
+      // 波形格式标志 
+      writeString('fmt '); offset += 4;
+      // 过滤字节,一般为 0x10 = 16 
+      data.setUint32(offset, 16, true); offset += 4;
+      // 格式类别 (PCM形式采样数据) 
+      data.setUint16(offset, 1, true); offset += 2;
+      // 通道数 
+      data.setUint16(offset, channelCount, true); offset += 2;
+      // 采样率,每秒样本数,表示每个通道的播放速度 
+      data.setUint32(offset, sampleRate, true); offset += 4;
+      // 波形数据传输率 (每秒平均字节数) 单声道×每秒数据位数×每样本数据位/8 
+      data.setUint32(offset, channelCount * sampleRate * (sampleBits / 8), true); offset += 4;
+      // 快数据调整数 采样一次占用字节数 单声道×每样本的数据位数/8 
+      data.setUint16(offset, channelCount * (sampleBits / 8), true); offset += 2;
+      // 每样本数据位数 
+      data.setUint16(offset, sampleBits, true); offset += 2;
+      // 数据标识符 
+      writeString('data'); offset += 4;
+      // 采样数据总数,即数据总大小-44 
+      data.setUint32(offset, dataLength, true); offset += 4;
+      // 写入采样数据 
+      if (sampleBits === 8) {
+        for (var i = 0; i < bytes.length; i++, offset++) {
+          var s = Math.max(-1, Math.min(1, bytes[i]));
+          var val = s < 0 ? s * 0x8000 : s * 0x7FFF;
+          val = parseInt(255 / (65535 / (val + 32768)));
+          data.setInt8(offset, val, true);
+        }
+      } else {
+        for (var i = 0; i < bytes.length; i++, offset += 2) {
+          var s = Math.max(-1, Math.min(1, bytes[i]));
+          data.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+      }
+
+      return new Blob([data], { type: 'audio/wav' });
+    }
+  };
+
+  this.start = function () {
+    audioInput.connect(recorder);
+    recorder.connect(context.destination);
+  }
+
+  this.stop = function () {
+  	var streamTracks = stream.getAudioTracks();
+  	for(var i = 0, length1 = streamTracks.length; i < length1; i++){
+  		streamTracks[i].stop();
+  	}
+    recorder.disconnect();
+  }
+
+  this.getBlob = function () {
+    return audioData.encodeWAV();
+  }
+
+  this.clear = function() {
+    audioData.clear();
+  }
+
+  recorder.onaudioprocess = function (e) {
+    audioData.input(e.inputBuffer.getChannelData(0));
+  }
+};
+

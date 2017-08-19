@@ -87,12 +87,6 @@
   line-height: 39px;
   border-bottom: 1px solid #eee;
 }
-#chat-page .container .chat-board .chat-header .add-friend {
-  float: right;
-  margin-right: 20px;
-  cursor: pointer;
-  padding: 0 10px;
-}
 #chat-page .container .msgs-board {
   height: 363px;
 }
@@ -143,6 +137,11 @@
   word-break: break-all;
   background-color: #fafafa;
   border-radius: 4px;
+  border: transparent;
+  outline: none;
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
 }
 #chat-page .container .msgs-board ul li .message-body .text:before {
   content: " ";
@@ -151,6 +150,24 @@
   right: 100%;
   border: 6px solid transparent;
   border-right-color: #fafafa;
+}
+#chat-page .container .msgs-board ul li .message-body button.text {
+  width: 120px;
+}
+#chat-page .container .msgs-board ul li .message-body .new:after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  right: 0;
+  top: 12px;
+  border: 3px solid red;
+  border-radius: 50%;
+}
+#chat-page .container .msgs-board ul li .message-body button.text:active {
+  -webkit-transform: translateY(1px);
+      -ms-transform: translateY(1px);
+          transform: translateY(1px);
 }
 #chat-page .container .msgs-board ul li .self {
   text-align: right;
